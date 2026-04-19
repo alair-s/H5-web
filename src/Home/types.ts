@@ -2,6 +2,7 @@ import type { ReactElement } from 'react'
 
 export type HomePageProps = {
   goToPage?: (pageId: string) => void
+  activePageId?: string
 }
 
 export type HomePageDefinition = {

@@ -1,5 +1,7 @@
 import { motion } from 'motion/react'
 import { creativeKeywords } from '../../Background/assets'
+import { pageMusicTracks } from '../../Background/music'
+import PageMusic from '../../Component/PageMusic'
 import type { HomePageProps } from '../types'
 
 const featureCards = [
@@ -26,12 +28,15 @@ const motionIdeas = [
 
 const routeStops = ['鼓浪屿', '中山路', '沙坡尾', '环岛路']
 
-export default function Page2(_: HomePageProps) {
+export default function Page2({ activePageId }: HomePageProps) {
+  const isActive = activePageId === 'home-page-2'
+
   return (
     <section
       id="home-page-2"
       className="relative min-h-screen snap-start overflow-hidden px-4 py-4"
     >
+      <PageMusic isActive={isActive} track={pageMusicTracks.page2} />
       <div className="relative mx-auto flex h-[calc(100vh-2rem)] w-full max-w-sm flex-col overflow-hidden rounded-[34px] bg-[linear-gradient(180deg,#fefeff,#edf3ff_62%,#dbe7ff)] px-5 py-8 shadow-[0_24px_60px_rgba(112,130,186,0.2)]">
         <div className="absolute -right-10 top-10 h-36 w-36 rounded-full bg-[#bdd1ff]/40 blur-3xl" />
         <div className="absolute -left-12 bottom-28 h-40 w-40 rounded-full bg-[#ffe8b8]/55 blur-3xl" />
