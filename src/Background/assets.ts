@@ -1,9 +1,9 @@
-import bgImage from '../../第一页/背景.png'
-import bubbleImage from '../../第一页/对话框.png'
-import buttonImage from '../../第一页/开始按钮.png'
-import characterImage from '../../第一页/第一页.png'
-import subtitleImage from '../../第一页/副标题.png'
-import titleImage from '../../第一页/标题.png'
+import bgImage from '../../assets/page1/background.png'
+import bubbleImage from '../../assets/page1/dialog-bubble.png'
+import buttonImage from '../../assets/page1/start-button.png'
+import characterImage from '../../assets/page1/character.png'
+import subtitleImage from '../../assets/page1/subtitle.png'
+import titleImage from '../../assets/page1/title.png'
 
 export type PngAsset = {
   src: string
