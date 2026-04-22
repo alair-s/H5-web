@@ -8,7 +8,7 @@ export default function ScrollHint() {
       animate={{ opacity: 1 }}
       transition={{ delay: 1.1, duration: 0.5 }}
     >
-      <span>SCROLL</span>
+      <span>下一页</span>
       <div className="flex h-10 w-6 justify-center rounded-full border border-slate-400/60">
         <motion.span
           className="mt-2 h-2 w-2 rounded-full bg-slate-500"

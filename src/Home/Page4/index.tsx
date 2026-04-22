@@ -1,13 +1,12 @@
 import { motion } from 'motion/react'
 import { pageMusicTracks } from '../../Background/music'
-import { useBackgroundMusic } from '../../Component/BackgroundMusicProvider'
 import PageMusic from '../../Component/PageMusic'
+import ScrollHint from '../../Component/ScrollHint'
 import SceneImage from '../../UI/SceneImage'
 import type { HomePageProps } from '../types'
 import { page4Assets } from './assets'
 
-export default function Page4({ activePageId, goToPage }: HomePageProps) {
-  const { enablePlayback } = useBackgroundMusic()
+export default function Page4({ activePageId }: HomePageProps) {
   const isActive = activePageId === 'home-page-4'
 
   return (
@@ -66,25 +65,7 @@ export default function Page4({ activePageId, goToPage }: HomePageProps) {
           第四页做成擦拭揭晓页，编号已经前移到和资源 `page4` 一致。
         </motion.div>
 
-        <motion.button
-          type="button"
-          onClick={() => {
-            void enablePlayback()
-            goToPage?.('home-page-5')
-          }}
-          className="absolute inset-x-0 bottom-[8%] z-10 mx-auto w-[64%] rounded-full bg-[#6f8ee8] px-6 py-3 text-sm font-medium text-white shadow-[0_16px_32px_rgba(111,142,232,0.24)]"
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.4 }}
-          animate={{ scale: [1, 1.03, 1] }}
-          transition={{
-            opacity: { delay: 0.4, duration: 0.4 },
-            y: { delay: 0.4, duration: 0.4 },
-            scale: { duration: 2.1, delay: 1.1, repeat: Infinity, ease: 'easeInOut' },
-          }}
-        >
-          继续看第五页
-        </motion.button>
+        <ScrollHint />
       </div>
     </section>
   )

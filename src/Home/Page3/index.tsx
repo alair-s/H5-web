@@ -1,7 +1,7 @@
 import { motion } from 'motion/react'
 import { pageMusicTracks } from '../../Background/music'
-import { useBackgroundMusic } from '../../Component/BackgroundMusicProvider'
 import PageMusic from '../../Component/PageMusic'
+import ScrollHint from '../../Component/ScrollHint'
 import SceneImage from '../../UI/SceneImage'
 import type { HomePageProps } from '../types'
 import { page3Assets } from './assets'
@@ -29,8 +29,7 @@ const placeCards = [
   },
 ] as const
 
-export default function Page3({ activePageId, goToPage }: HomePageProps) {
-  const { enablePlayback } = useBackgroundMusic()
+export default function Page3({ activePageId }: HomePageProps) {
   const isActive = activePageId === 'home-page-3'
 
   return (
@@ -90,25 +89,7 @@ export default function Page3({ activePageId, goToPage }: HomePageProps) {
           第三页保留多景点拼贴结构，现在资源路径和编号都已经跟页面一致。
         </motion.div>
 
-        <motion.button
-          type="button"
-          onClick={() => {
-            void enablePlayback()
-            goToPage?.('home-page-4')
-          }}
-          className="absolute inset-x-0 bottom-[11%] z-10 mx-auto w-[60%] rounded-full bg-[#6f8ee8] px-6 py-3 text-sm font-medium text-white shadow-[0_16px_32px_rgba(111,142,232,0.24)]"
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.4 }}
-          animate={{ scale: [1, 1.03, 1] }}
-          transition={{
-            opacity: { delay: 0.34, duration: 0.4 },
-            y: { delay: 0.34, duration: 0.4 },
-            scale: { duration: 2.1, delay: 1.1, repeat: Infinity, ease: 'easeInOut' },
-          }}
-        >
-          继续看第四页
-        </motion.button>
+        <ScrollHint />
       </div>
     </section>
   )

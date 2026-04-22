@@ -2,6 +2,7 @@ import { motion } from 'motion/react'
 import { useEffect, useState } from 'react'
 import { pageMusicTracks } from '../../Background/music'
 import PageMusic from '../../Component/PageMusic'
+import ScrollHint from '../../Component/ScrollHint'
 import SceneImage from '../../UI/SceneImage'
 import type { HomePageProps } from '../types'
 import { page6Assets } from './assets'
@@ -152,7 +153,7 @@ export default function Page6({ activePageId }: HomePageProps) {
           {isSolved ? ' 已完成拼图。' : ' 把九块都放回正确位置。'}
         </motion.div>
 
-        <div className="absolute inset-x-0 bottom-[7%] z-10 flex justify-center gap-3">
+        <div className="absolute inset-x-0 bottom-[13%] z-10 flex justify-center gap-3">
           <motion.button
             type="button"
             onClick={resetPuzzle}
@@ -172,6 +173,8 @@ export default function Page6({ activePageId }: HomePageProps) {
             </motion.div>
           ) : null}
         </div>
+
+        <ScrollHint />
       </div>
     </section>
   )
