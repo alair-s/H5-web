@@ -1,35 +1,53 @@
 import { motion } from 'motion/react'
-import { creativeKeywords } from '../../Background/assets'
+import { useEffect, useState } from 'react'
 import { pageMusicTracks } from '../../Background/music'
+import { useBackgroundMusic } from '../../Component/BackgroundMusicProvider'
 import PageMusic from '../../Component/PageMusic'
+import SceneImage from '../../UI/SceneImage'
 import type { HomePageProps } from '../types'
+import { page2Assets } from './assets'
 
-const featureCards = [
+const photoCards = [
   {
-    title: 'PNG 企业级管理',
-    desc: '公共素材统一注册，页面只拿配置，不在业务组件里到处散落 import。',
+    key: 'photoOne',
+    asset: page2Assets.photoOne,
+    stackedPosition: { left: '15%', top: '32%', width: '70%' },
+    stackedRotate: -8,
+    revealedPosition: { left: '6%', top: '23%', width: '72%' },
+    revealedRotate: -7,
   },
   {
-    title: '纯滚动分页',
-    desc: '不要导航栏，直接利用手机长屏和滚动节奏完成内容叙事。',
+    key: 'photoTwo',
+    asset: page2Assets.photoTwo,
+    stackedPosition: { left: '15%', top: '34%', width: '70%' },
+    stackedRotate: 0,
+    revealedPosition: { left: '24%', top: '42%', width: '72%' },
+    revealedRotate: 6,
   },
   {
-    title: '页面内再分页',
-    desc: 'Home 负责总滚动，Page 内部再拆版心、装饰层和内容层，后面继续扩展更稳。',
+    key: 'photoThree',
+    asset: page2Assets.photoThree,
+    stackedPosition: { left: '15%', top: '36%', width: '70%' },
+    stackedRotate: 7,
+    revealedPosition: { left: '9%', top: '58%', width: '70%' },
+    revealedRotate: -4,
   },
-]
+] as const
 
-const motionIdeas = [
-  '海风流线：用细白线和透明渐变做横向掠过，表现海边风感。',
-  '邮票盖章：在章节切换处加入旋转落章，增强“明信片”主题。',
-  '纸片揭示：内容卡片滚动到可视区域时像便签被轻轻揭开。',
-  '光斑漂浮：少量淡蓝高光上下浮动，替代继续堆 PNG。',
-]
-
-const routeStops = ['鼓浪屿', '中山路', '沙坡尾', '环岛路']
-
-export default function Page2({ activePageId }: HomePageProps) {
+export default function Page2({ activePageId, goToPage }: HomePageProps) {
+  const { enablePlayback } = useBackgroundMusic()
   const isActive = activePageId === 'home-page-2'
+  const [revealedCount, setRevealedCount] = useState(0)
+
+  useEffect(() => {
+    if (!isActive) {
+      setRevealedCount(0)
+    }
+  }, [isActive])
+
+  const revealNextPhoto = () => {
+    setRevealedCount((current) => Math.min(current + 1, photoCards.length))
+  }
 
   return (
     <section
@@ -37,110 +55,87 @@ export default function Page2({ activePageId }: HomePageProps) {
       className="relative min-h-screen snap-start overflow-hidden px-4 py-4"
     >
       <PageMusic isActive={isActive} track={pageMusicTracks.page2} />
-      <div className="relative mx-auto flex h-[calc(100vh-2rem)] w-full max-w-sm flex-col overflow-hidden rounded-[34px] bg-[linear-gradient(180deg,#fefeff,#edf3ff_62%,#dbe7ff)] px-5 py-8 shadow-[0_24px_60px_rgba(112,130,186,0.2)]">
-        <div className="absolute -right-10 top-10 h-36 w-36 rounded-full bg-[#bdd1ff]/40 blur-3xl" />
-        <div className="absolute -left-12 bottom-28 h-40 w-40 rounded-full bg-[#ffe8b8]/55 blur-3xl" />
-
-        <motion.div
-          className="absolute right-4 top-4 h-24 w-24 rounded-full border-2 border-dashed border-[#8ea8f4]/70"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 12, repeat: Infinity, ease: 'linear' }}
+      <div className="relative mx-auto h-[calc(100vh-2rem)] w-full max-w-sm overflow-hidden rounded-[34px] bg-white shadow-[0_24px_60px_rgba(112,130,186,0.18)]">
+        <SceneImage
+          asset={page2Assets.background}
+          className="absolute inset-0 h-full w-full object-cover"
         />
 
         <motion.div
-          className="relative z-10"
-          initial={{ opacity: 0, y: 24 }}
+          className="absolute left-1/2 top-[11%] z-10 -translate-x-1/2 rounded-full bg-white/72 px-4 py-2 text-xs tracking-[0.2em] text-slate-500 shadow-[0_10px_24px_rgba(128,145,197,0.18)] backdrop-blur-sm"
+          initial={{ opacity: 0, y: -16 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.2 }}
-          transition={{ duration: 0.55 }}
+          viewport={{ once: true, amount: 0.4 }}
+          transition={{ duration: 0.4 }}
         >
-          <p className="text-xs uppercase tracking-[0.35em] text-[#6f8ee8]">
-            Home / Page 02
-          </p>
-          <h2 className="mt-3 text-[2rem] font-semibold leading-tight tracking-tight text-slate-800">
-            一屏负责氛围
-            <br />
-            二屏负责展开故事
-          </h2>
-          <p className="mt-3 text-sm leading-6 text-slate-600">
-            这里不再继续堆整张 PNG，而是用卡片、印章、流线和浮层把内容带出来，
-            这样后面的 H5 会更轻，也更像完整作品。
-          </p>
+          点击照片慢慢展开
         </motion.div>
 
-        <div className="relative z-10 mt-6 grid grid-cols-2 gap-3">
-          {creativeKeywords.map((word, index) => (
-            <motion.div
-              key={word}
-              className="rounded-2xl border border-white/80 bg-white/70 px-3 py-3 text-center text-sm font-medium text-slate-700 backdrop-blur-sm"
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ delay: index * 0.06, duration: 0.4 }}
-            >
-              {word}
-            </motion.div>
-          ))}
-        </div>
+        <button
+          type="button"
+          onClick={revealNextPhoto}
+          className="absolute inset-x-[5%] top-[18%] bottom-[26%] z-10"
+          aria-label="点击展开照片"
+        >
+          {photoCards.map((item, index) => {
+            const isRevealed = index < revealedCount
 
-        <div className="relative z-10 mt-5 space-y-3">
-          {featureCards.map((item, index) => (
-            <motion.article
-              key={item.title}
-              className="rounded-[26px] bg-white/72 p-4 shadow-[0_14px_34px_rgba(125,146,194,0.12)] backdrop-blur-md"
-              initial={{ opacity: 0, x: index % 2 === 0 ? -18 : 18 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ delay: index * 0.08, duration: 0.45 }}
-            >
-              <p className="text-base font-semibold text-slate-800">{item.title}</p>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{item.desc}</p>
-            </motion.article>
-          ))}
-        </div>
+            return (
+              <motion.div
+                key={item.key}
+                className="absolute"
+                animate={{
+                  left: isRevealed ? item.revealedPosition.left : item.stackedPosition.left,
+                  top: isRevealed ? item.revealedPosition.top : item.stackedPosition.top,
+                  width: isRevealed ? item.revealedPosition.width : item.stackedPosition.width,
+                  opacity: 1,
+                  scale: isRevealed ? 1 : 0.94 + index * 0.03,
+                  y: isRevealed ? 0 : index * 8,
+                  rotate: isRevealed ? item.revealedRotate : item.stackedRotate,
+                }}
+                transition={{ duration: 0.45, ease: 'easeOut' }}
+                style={{ zIndex: photoCards.length - index }}
+              >
+                <SceneImage
+                  asset={item.asset}
+                  className="pointer-events-none block w-full drop-shadow-[0_16px_28px_rgba(94,108,153,0.22)]"
+                />
+              </motion.div>
+            )
+          })}
+        </button>
 
         <motion.div
-          className="relative z-10 mt-5 rounded-[30px] bg-[linear-gradient(135deg,rgba(111,142,232,0.94),rgba(136,181,255,0.92))] p-5 text-white"
+          className="absolute inset-x-[8%] bottom-[22%] z-10"
           initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.2 }}
-          transition={{ duration: 0.5 }}
+          animate={{
+            opacity: revealedCount === photoCards.length ? 1 : 0,
+            y: revealedCount === photoCards.length ? 0 : 20,
+          }}
+          transition={{ duration: 0.35, ease: 'easeOut' }}
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-white/70">
-                Creative Route
-              </p>
-              <p className="mt-2 text-lg font-semibold">创意动效方向</p>
-            </div>
-            <motion.div
-              className="h-12 w-12 rounded-full bg-white/14"
-              animate={{ scale: [1, 1.12, 1], opacity: [0.8, 1, 0.8] }}
-              transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-            />
-          </div>
-
-          <div className="mt-4 space-y-2 text-sm leading-6 text-white/92">
-            {motionIdeas.map((item) => (
-              <p key={item}>{item}</p>
-            ))}
-          </div>
+          <SceneImage asset={page2Assets.text} className="block w-full" />
         </motion.div>
 
-        <div className="relative z-10 mt-auto flex flex-wrap gap-2">
-          {routeStops.map((stop, index) => (
-            <motion.span
-              key={stop}
-              className="rounded-full border border-white/70 bg-white/70 px-3 py-2 text-xs text-slate-700"
-              initial={{ opacity: 0, scale: 0.85 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true, amount: 0.4 }}
-              transition={{ delay: index * 0.08, duration: 0.35 }}
-            >
-              {stop}
-            </motion.span>
-          ))}
-        </div>
+        <motion.button
+          type="button"
+          onClick={() => {
+            void enablePlayback()
+            goToPage?.('home-page-3')
+          }}
+          className="absolute inset-x-0 bottom-[8%] z-10 mx-auto w-[64%] rounded-full bg-[#6f8ee8] px-6 py-3 text-sm font-medium text-white shadow-[0_16px_32px_rgba(111,142,232,0.24)]"
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.4 }}
+          animate={{ scale: [1, 1.03, 1] }}
+          transition={{
+            opacity: { delay: 0.35, duration: 0.4 },
+            y: { delay: 0.35, duration: 0.4 },
+            scale: { duration: 2.1, delay: 1.1, repeat: Infinity, ease: 'easeInOut' },
+          }}
+        >
+          继续看第三页
+        </motion.button>
       </div>
     </section>
   )
