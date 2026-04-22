@@ -1,4 +1,5 @@
 import { motion } from 'motion/react'
+import { useEffect, useState } from 'react'
 import { pageMusicTracks } from '../../Background/music'
 import PageMusic from '../../Component/PageMusic'
 import ScrollHint from '../../Component/ScrollHint'
@@ -10,27 +11,44 @@ const placeCards = [
   {
     key: 'zhongshanRoad',
     asset: page3Assets.zhongshanRoad,
-    className: 'absolute left-[3%] top-[28%] w-[66%] rotate-[-6deg]',
+    className: 'absolute left-20 top-40 w-3/5 rotate-[-2deg]',
   },
   {
     key: 'alley',
     asset: page3Assets.alley,
-    className: 'absolute right-[2%] top-[48%] w-[72%] rotate-[3deg]',
+    className: 'absolute right-20 top-48 w-3/5 rotate-[1deg]',
   },
   {
     key: 'twinTowers',
     asset: page3Assets.twinTowers,
-    className: 'absolute left-[6%] bottom-[14%] w-[54%] rotate-[-4deg]',
+    className: 'absolute left-20 bottom-60 w-3/5 rotate-[-1deg]',
   },
   {
     key: 'bungalow',
     asset: page3Assets.bungalow,
-    className: 'absolute right-[7%] bottom-[12%] w-[36%] rotate-[5deg]',
+    className: 'absolute right-20 bottom-60 w-3/5 rotate-[5deg]',
   },
 ] as const
 
-export default function Page3({ activePageId }: HomePageProps) {
+export default function Page3({ activePageId, goToPage }: HomePageProps) {
   const isActive = activePageId === 'home-page-3'
+  const [step, setStep] = useState(0)
+  const finalStep = placeCards.length + 3
+
+  useEffect(() => {
+    if (!isActive) {
+      setStep(0)
+    }
+  }, [isActive])
+
+  const revealNext = () => {
+    if (step >= finalStep) {
+      goToPage?.('home-page-4')
+      return
+    }
+
+    setStep((current) => Math.min(current + 1, finalStep))
+  }
 
   return (
     <section
@@ -41,53 +59,55 @@ export default function Page3({ activePageId }: HomePageProps) {
       <div className="relative mx-auto h-[calc(100vh-2rem)] w-full max-w-sm overflow-hidden rounded-[34px] bg-white shadow-[0_24px_60px_rgba(112,130,186,0.18)]">
         <SceneImage
           asset={page3Assets.background}
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-fill"
         />
 
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.18))]" />
 
-        <motion.div
-          className="absolute left-[6%] top-[8%] z-10 w-[42%]"
-          initial={{ opacity: 0, x: -24, y: 12 }}
-          whileInView={{ opacity: 1, x: 0, y: 0 }}
-          viewport={{ once: true, amount: 0.4 }}
-          transition={{ duration: 0.45 }}
-        >
-          <SceneImage asset={page3Assets.ip} className="block w-full" />
-        </motion.div>
+        <button
+          type="button"
+          onClick={revealNext}
+          className="absolute inset-0 z-10"
+          aria-label={step >= finalStep ? '点击进入下一页' : '点击显示下一项内容'}
+        />
 
-        <motion.div
-          className="absolute right-[5%] top-[12%] z-10 w-[34%]"
-          initial={{ opacity: 0, scale: 0.85 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true, amount: 0.4 }}
-          transition={{ delay: 0.12, duration: 0.4 }}
-        >
-          <SceneImage asset={page3Assets.bubble} className="block w-full" />
-        </motion.div>
-
-        {placeCards.map((item, index) => (
+        {step >= 5 ? (
           <motion.div
-            key={item.key}
-            className={`${item.className} z-10`}
-            initial={{ opacity: 0, y: 22, scale: 0.94 }}
-            whileInView={{ opacity: 1, y: 0, scale: 1 }}
-            viewport={{ once: true, amount: 0.25 }}
-            transition={{ delay: 0.12 + index * 0.08, duration: 0.45 }}
+            className="pointer-events-none absolute left-5 bottom-6 z-30 w-2/5"
+            initial={{ opacity: 1, x: -24, y: 0, scale: 1.5}}
+            animate={{ opacity: 1, x: -15, y: 0, scale: 1.5}}
+            transition={{ duration: 1 }}
           >
-            <SceneImage asset={item.asset} className="block w-full" />
+            <SceneImage asset={page3Assets.ip} className="block w-full" />
           </motion.div>
-        ))}
+        ) : null}
 
-        <motion.div
-          className="absolute inset-x-5 bottom-[21%] z-10 rounded-[26px] bg-white/78 px-4 py-3 text-xs leading-5 text-slate-600 shadow-[0_12px_28px_rgba(130,148,190,0.16)] backdrop-blur-md"
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ delay: 0.3, duration: 0.4 }}
-        >
-          第三页保留多景点拼贴结构，现在资源路径和编号都已经跟页面一致。
-        </motion.div>
+        {step >= 6 ? (
+          <motion.div
+            className="pointer-events-none absolute right-20 bottom-30 z-30 w-1/3"
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 3 }}
+            transition={{ duration: 0.4 }}
+          >
+            <SceneImage asset={page3Assets.bubble} className="block w-full" />
+          </motion.div>
+        ) : null}
+
+        {placeCards.map((item, index) =>
+          step >= index +1 ? (
+            <motion.div
+              key={item.key}
+              className={`pointer-events-none ${item.className} z-20`}
+              initial={{ opacity: 0, y: 22, scale: 0.94 }}
+              animate={{ opacity: 1, y: 0, scale: 1.8 }}
+              transition={{ duration: 0.45 }}
+            >
+              <SceneImage asset={item.asset} className="block w-full" />
+            </motion.div>
+          ) : null,
+        )}
+
+  
 
         <ScrollHint />
       </div>
