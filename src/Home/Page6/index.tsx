@@ -1,5 +1,5 @@
 import { motion } from 'motion/react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { pageMusicTracks } from '../../Background/music'
 import PageMusic from '../../Component/PageMusic'
 import ScrollHint from '../../Component/ScrollHint'
@@ -7,77 +7,143 @@ import SceneImage from '../../UI/SceneImage'
 import type { HomePageProps } from '../types'
 import { page6Assets } from './assets'
 
-function shuffledOrder() {
-  const values = Array.from({ length: 9 }, (_, index) => index)
+type Phase = 'puzzle' | 'flash' | 'complete'
 
-  for (let index = values.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(Math.random() * (index + 1))
-    ;[values[index], values[swapIndex]] = [values[swapIndex], values[index]]
+// Stable per-piece rotations for the pile display
+const PIECE_ROTATIONS = [5, -8, 3, -6, 9, -4, 7, -3, 6]
+
+function genPileOrder(): number[] {
+  const arr = Array.from({ length: 9 }, (_, i) => i)
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
   }
-
-  if (values.every((value, index) => value === index)) {
-    ;[values[0], values[1]] = [values[1], values[0]]
-  }
-
-  return values
+  return arr
 }
 
-export default function Page6({ activePageId }: HomePageProps) {
-  const [order, setOrder] = useState<number[]>(() => shuffledOrder())
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
-  const [step, setStep] = useState(0)
+export default function Page6({ activePageId, goToPage }: HomePageProps) {
   const isActive = activePageId === 'home-page-6'
-  const isSolved = order.every((value, index) => value === index)
 
+  // slots[i] = piece index placed at slot i (null if empty)
+  // With the "correct-only" mechanic, slots[i] === i when placed
+  const [slots, setSlots] = useState<(number | null)[]>(Array(9).fill(null))
+  const [pileOrder] = useState<number[]>(() => genPileOrder())
+  const [dragging, setDragging] = useState<{ pieceIndex: number; x: number; y: number } | null>(null)
+  const [hoveringSlot, setHoveringSlot] = useState<number | null>(null)
+  const [phase, setPhase] = useState<Phase>('puzzle')
+  const [showStep, setShowStep] = useState(false)
+
+  const slotRefs = useRef<(HTMLDivElement | null)[]>(Array(9).fill(null))
+  const phaseRef = useRef<Phase>('puzzle')
+  phaseRef.current = phase
+
+  // Reset when page becomes inactive
   useEffect(() => {
     if (!isActive) {
-      setStep(0)
+      setSlots(Array(9).fill(null))
+      setDragging(null)
+      setHoveringSlot(null)
+      setPhase('puzzle')
+      setShowStep(false)
+      return
     }
+    const t = setTimeout(() => setShowStep(true), 500)
+    return () => clearTimeout(t)
   }, [isActive])
 
+  // Watch for puzzle completion
   useEffect(() => {
-    if (isSolved) {
-      setSelectedIndex(null)
+    if (phaseRef.current !== 'puzzle') return
+    if (!slots.every((v, i) => v === i)) return
+
+    const t1 = setTimeout(() => setPhase('flash'), 300)
+    const t2 = setTimeout(() => setPhase('complete'), 1900)
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
     }
-  }, [isSolved])
+  }, [slots])
 
-  const handlePieceClick = (index: number) => {
-    if (step < 4) {
-      return
-    }
+  const placedPieces = useMemo(
+    () => new Set(slots.filter((s): s is number => s !== null)),
+    [slots],
+  )
+  const unplacedPiecesList = useMemo(
+    () => pileOrder.filter((i) => !placedPieces.has(i)),
+    [pileOrder, placedPieces],
+  )
 
-    if (isSolved) {
-      return
-    }
+  const handlePiecePointerDown = useCallback(
+    (e: React.PointerEvent, pieceIndex: number) => {
+      if (phaseRef.current !== 'puzzle') return
+      e.preventDefault()
+      e.stopPropagation()
 
-    if (selectedIndex === null) {
-      setSelectedIndex(index)
-      return
-    }
+      setDragging({ pieceIndex, x: e.clientX, y: e.clientY })
 
-    if (selectedIndex === index) {
-      setSelectedIndex(null)
-      return
-    }
+      const onMove = (ev: PointerEvent) => {
+        setDragging((prev) => (prev ? { ...prev, x: ev.clientX, y: ev.clientY } : null))
 
-    setOrder((current) => {
-      const next = [...current]
-      ;[next[selectedIndex], next[index]] = [next[index], next[selectedIndex]]
-      return next
-    })
-    setSelectedIndex(null)
-  }
+        let hovering: number | null = null
+        for (let i = 0; i < 9; i++) {
+          const slot = slotRefs.current[i]
+          if (!slot) continue
+          const rect = slot.getBoundingClientRect()
+          if (
+            ev.clientX >= rect.left &&
+            ev.clientX <= rect.right &&
+            ev.clientY >= rect.top &&
+            ev.clientY <= rect.bottom
+          ) {
+            hovering = i
+            break
+          }
+        }
+        setHoveringSlot(hovering)
+      }
 
-  const resetPuzzle = () => {
-    setOrder(shuffledOrder())
-    setSelectedIndex(null)
-  }
+      const onUp = (ev: PointerEvent) => {
+        window.removeEventListener('pointermove', onMove)
+        window.removeEventListener('pointerup', onUp)
+        window.removeEventListener('pointercancel', onUp)
 
-  const revealNext = () => {
-    setStep((current) => Math.min(current + 1, 4))
-  }
+        // Find drop target
+        let targetSlot: number | null = null
+        for (let i = 0; i < 9; i++) {
+          const slot = slotRefs.current[i]
+          if (!slot) continue
+          const rect = slot.getBoundingClientRect()
+          if (
+            ev.clientX >= rect.left &&
+            ev.clientX <= rect.right &&
+            ev.clientY >= rect.top &&
+            ev.clientY <= rect.bottom
+          ) {
+            targetSlot = i
+            break
+          }
+        }
 
-  const placedCount = order.filter((value, index) => value === index).length
+        setDragging(null)
+        setHoveringSlot(null)
+
+        // Only accept correct placement (piece index must match slot index)
+        if (targetSlot !== null && targetSlot === pieceIndex) {
+          setSlots((prev) => {
+            if (prev[targetSlot!] !== null) return prev
+            const next = [...prev]
+            next[targetSlot!] = pieceIndex
+            return next
+          })
+        }
+      }
+
+      window.addEventListener('pointermove', onMove)
+      window.addEventListener('pointerup', onUp)
+      window.addEventListener('pointercancel', onUp)
+    },
+    [],
+  )
 
   return (
     <section
@@ -91,116 +157,221 @@ export default function Page6({ activePageId }: HomePageProps) {
           className="absolute inset-0 h-full w-full object-fill"
         />
 
-        {step < 4 ? (
-          <button
-            type="button"
-            onClick={revealNext}
-            className="absolute inset-0 z-10"
-            aria-label="点击显示下一项内容"
-          />
-        ) : null}
 
-        {step >= 1 ? (
-          <motion.div
-            className="pointer-events-none absolute left-1/2 top-6 z-20 w-3/4 -translate-x-1/2"
-            initial={{ opacity: 0, y: -16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45 }}
+        <img
+          src={page6Assets.title.src}
+          alt={page6Assets.title.alt}
+          className="absolute inset-0 z-10 h-full w-full select-none object-fill pointer-events-none"
+          draggable={false}
+        />
+
+        {/* ── TOP HALF: reference grid + puzzle slots ── */}
+        <div className="absolute inset-x-5 top-25 flex flex-col items-center">
+          {/* Step 1 indicator */}
+
+    
+
+          {/* Puzzle grid: square, constrained to fit the upper half */}
+          <div
+            className="relative w-full overflow-hidden rounded-2xl shadow-[0_8px_28px_rgba(60,80,140,0.22)]"
+            style={{ aspectRatio: '1 / 1', maxWidth: 'min(100%, calc(44vh - 3rem))' }}
           >
-            <SceneImage asset={page6Assets.title} className="block w-full" />
-          </motion.div>
+            {/* Layer 1 (bottom): reference image at 25% opacity — always visible as hint */}
+            <div className="absolute inset-0 grid grid-cols-3 grid-rows-3">
+              {page6Assets.pieces.map((piece, i) => (
+                <img
+                  key={i}
+                  src={piece.src}
+                  alt=""
+                  className="block h-full w-full select-none object-cover"
+                  draggable={false}
+                />
+              ))}
+            </div>
+
+            {/* Layer 2: dark overlay + per-slot shadows (puzzle phase only) */}
+            {phase === 'puzzle' ? (
+              <>
+                {/* Global dim so reference image looks like a faint ghost */}
+                <div className="absolute inset-0 bg-slate-900/55" />
+
+                {/* Individual slot cells */}
+                <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 gap-[2px] p-[2px]">
+                  {Array.from({ length: 9 }, (_, i) => (
+                    <div
+                      key={i}
+                      ref={(el) => {
+                        slotRefs.current[i] = el
+                      }}
+                      className={[
+                        'relative overflow-hidden transition-all duration-150',
+                        slots[i] !== null
+                          ? ''
+                          : hoveringSlot === i
+                            ? 'bg-sky-300/35 ring-2 ring-inset ring-sky-300'
+                            : 'bg-slate-800/50',
+                      ].join(' ')}
+                    >
+                      {slots[i] !== null ? (
+                        <motion.img
+                          src={page6Assets.pieces[slots[i] as number].src}
+                          alt=""
+                          className="block h-full w-full select-none object-cover"
+                          initial={{ opacity: 0, scale: 0.78 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.22, ease: 'easeOut' }}
+                          draggable={false}
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center">
+
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : null}
+
+            {/* Layer 3: fully assembled image (flash + complete phases) */}
+            {phase !== 'puzzle' ? (
+              <motion.div
+                className="absolute inset-0 grid grid-cols-3 grid-rows-3"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.35 }}
+              >
+                {page6Assets.pieces.map((piece, i) => (
+                  <img
+                    key={i}
+                    src={piece.src}
+                    alt=""
+                    className="block h-full w-full select-none object-cover"
+                    draggable={false}
+                  />
+                ))}
+              </motion.div>
+            ) : null}
+
+            {/* Layer 4: flash sparkle effects (from Page4 style) */}
+            {phase === 'flash' ? (
+              <>
+                <motion.div
+                  className="pointer-events-none absolute inset-0 z-30 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.95),rgba(255,255,255,0)_58%)]"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: [0, 1, 0] }}
+                  transition={{ duration: 1.2, ease: 'easeOut' }}
+                />
+                <motion.div
+                  className="pointer-events-none absolute inset-y-0 left-[-24%] z-30 w-1/3 rotate-12 bg-[linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,0.82),rgba(255,255,255,0))] blur-md"
+                  initial={{ x: 0, opacity: 0 }}
+                  animate={{ x: '420%', opacity: [0, 1, 0] }}
+                  transition={{ duration: 1.0, ease: 'easeOut' }}
+                />
+                <motion.span
+                  className="pointer-events-none absolute left-3 top-3 z-30 text-2xl text-white"
+                  initial={{ opacity: 0, scale: 0.5, rotate: -12 }}
+                  animate={{ opacity: [0, 1, 0], scale: [0.5, 1.3, 0.8], rotate: [-12, 0, 12] }}
+                  transition={{ duration: 0.95, delay: 0.1, ease: 'easeOut' }}
+                >
+                  ✦
+                </motion.span>
+                <motion.span
+                  className="pointer-events-none absolute right-4 top-4 z-30 text-3xl text-white"
+                  initial={{ opacity: 0, scale: 0.5, rotate: 8 }}
+                  animate={{ opacity: [0, 1, 0], scale: [0.5, 1.2, 0.75], rotate: [8, 0, -8] }}
+                  transition={{ duration: 1.05, delay: 0.2, ease: 'easeOut' }}
+                >
+                  ✦
+                </motion.span>
+                <motion.span
+                  className="pointer-events-none absolute bottom-3 left-1/2 z-30 -translate-x-1/2 text-2xl text-white"
+                  initial={{ opacity: 0, scale: 0.5, x: '-50%' }}
+                  animate={{ opacity: [0, 1, 0], scale: [0.5, 1.2, 0.8], x: '-50%' }}
+                  transition={{ duration: 0.95, delay: 0.28, ease: 'easeOut' }}
+                >
+                  ✦
+                </motion.span>
+                <motion.span
+                  className="pointer-events-none absolute bottom-4 right-3 z-30 text-xl text-white"
+                  initial={{ opacity: 0, scale: 0.5, rotate: -10 }}
+                  animate={{ opacity: [0, 1, 0], scale: [0.5, 1.15, 0.75], rotate: [-10, 0, 10] }}
+                  transition={{ duration: 0.9, delay: 0.15, ease: 'easeOut' }}
+                >
+                  ✦
+                </motion.span>
+              </>
+            ) : null}
+          </div>
+        </div>
+
+        {/* ── BOTTOM HALF: shuffled piece pile ── */}
+        {phase === 'puzzle' ? (
+          <div className="absolute inset-x-5 bottom-16" style={{ top: 'calc(44vh + 4.5rem)' }}>
+            <div className="flex h-full flex-wrap content-start items-start justify-center gap-2 overflow-hidden pt-1">
+              {unplacedPiecesList.map((pieceIndex) => {
+                const isDragged = dragging?.pieceIndex === pieceIndex
+                return (
+                  <motion.div
+                    key={pieceIndex}
+                    className={[
+                      'touch-none cursor-grab overflow-hidden rounded-lg shadow-md',
+                      'transition-opacity duration-150',
+                      isDragged ? 'opacity-25' : 'opacity-100',
+                    ].join(' ')}
+                    style={{
+                      width: 'calc(33% - 6px)',
+                      rotate: PIECE_ROTATIONS[pieceIndex],
+                    }}
+                    whileTap={{ scale: 1.08 }}
+                    onPointerDown={(e) => handlePiecePointerDown(e, pieceIndex)}
+                  >
+                    <img
+                      src={page6Assets.pieces[pieceIndex].src}
+                      alt={`拼图碎片 ${pieceIndex + 1}`}
+                      className="block w-full select-none"
+                      draggable={false}
+                    />
+                  </motion.div>
+                )
+              })}
+
+            </div>
+          </div>
         ) : null}
 
-        {step >= 2 ? (
-          <motion.div
-            className="pointer-events-none absolute left-1/2 top-18 z-20 w-1/5 -translate-x-1/2"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1, y: [0, -8, 0] }}
-            transition={{
-              opacity: { duration: 0.4 },
-              scale: { duration: 0.4 },
-              y: { duration: 2.8, repeat: Infinity, ease: 'easeInOut' },
+        {/* Floating dragged piece (follows cursor / finger) */}
+        {dragging ? (
+          <div
+            className="pointer-events-none fixed z-50 overflow-hidden rounded-lg shadow-2xl"
+            style={{
+              width: 82,
+              left: dragging.x - 41,
+              top: dragging.y - 41,
+              transform: 'scale(1.12)',
             }}
           >
-            <SceneImage asset={page6Assets.successEmoji} className="block w-full" />
-          </motion.div>
+            <img
+              src={page6Assets.pieces[dragging.pieceIndex].src}
+              alt=""
+              className="block w-full select-none"
+              draggable={false}
+            />
+          </div>
         ) : null}
 
-        {step >= 3 ? (
-          <motion.div
-            className="absolute left-1/2 top-30 z-20 w-7/12 -translate-x-1/2 rounded-[22px] border-[6px] border-[#495474]/90 bg-white/72 p-2 shadow-[0_18px_34px_rgba(92,104,141,0.16)] backdrop-blur-md"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45 }}
-          >
-            <div className={`relative overflow-hidden rounded-[14px] ${step < 4 ? 'pointer-events-none' : ''}`}>
-              <SceneImage
-                asset={page6Assets.completedPuzzle}
-                className="block w-full opacity-25"
-              />
-              <div className="absolute inset-0 grid grid-cols-3 gap-[2px] bg-[#495474]/40 p-[2px]">
-                {order.map((pieceIndex, index) => {
-                  const piece = page6Assets.pieces[pieceIndex]
-                  const isSelected = selectedIndex === index
-                  const isPlaced = pieceIndex === index
-
-                  return (
-                    <button
-                      key={`${piece.alt}-${index}`}
-                      type="button"
-                      onClick={() => handlePieceClick(index)}
-                      className={`relative overflow-hidden bg-white/70 transition ${
-                        isSelected ? 'ring-4 ring-[#6f8ee8]' : ''
-                      } ${isPlaced ? 'shadow-[inset_0_0_0_2px_rgba(80,180,120,0.65)]' : ''}`}
-                    >
-                      <img
-                        src={piece.src}
-                        alt={piece.alt}
-                        className="block w-full"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          </motion.div>
-        ) : null}
-
-        {step >= 4 ? (
-          <>
-            <motion.div
-              className="absolute inset-x-6 bottom-26 z-20 rounded-[26px] bg-white/78 px-4 py-3 text-sm leading-6 text-slate-600 shadow-[0_10px_30px_rgba(142,159,197,0.16)] backdrop-blur-md"
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45 }}
-            >
-              玩法：点击两块碎片交换位置。当前完成 {placedCount}/9。
-              {isSolved ? ' 已完成拼图。' : ' 把九块都放回正确位置。'}
-            </motion.div>
-
-            <div className="absolute inset-x-0 bottom-14 z-20 flex justify-center gap-3">
-              <motion.button
-                type="button"
-                onClick={resetPuzzle}
-                className="rounded-full border border-[#6f8ee8]/30 bg-white/82 px-5 py-3 text-sm font-medium text-[#5a75d9] shadow-[0_10px_24px_rgba(111,142,232,0.16)]"
-                whileTap={{ scale: 0.97 }}
-              >
-                重新打乱
-              </motion.button>
-
-              {isSolved ? (
-                <motion.div
-                  className="rounded-full bg-[#6f8ee8] px-5 py-3 text-sm font-medium text-white shadow-[0_16px_32px_rgba(111,142,232,0.24)]"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                >
-                  拼图完成
-                </motion.div>
-              ) : null}
-            </div>
-          </>
+        {/* Complete: full-page success overlay, click to next page */}
+        {phase === 'complete' ? (
+          <motion.img
+            src={page6Assets.successEmoji.src}
+            alt={page6Assets.successEmoji.alt}
+            className="absolute z-40   cursor-pointer bottom-10 "
+            draggable={false}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1}}
+            transition={{ delay: 0.1, duration: 0.4 }}
+            onClick={() => goToPage?.('home-page-7')}
+          />
         ) : null}
 
         <ScrollHint />

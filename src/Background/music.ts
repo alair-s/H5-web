@@ -35,4 +35,29 @@ export const pageMusicTracks = {
     title: 'Page 6 BGM',
     src: '/audio/page6-bgm.mp3',
   },
+  page7: {
+    id: 'page7-bgm',
+    title: 'Page 7 BGM',
+    src: '/audio/page7-bgm.mp3',
+  },
+  page8: {
+    id: 'page8-bgm',
+    title: 'Page 8 BGM',
+    src: '/audio/page8-bgm.mp3',
+  },
+  page9: {
+    id: 'page9-bgm',
+    title: 'Page 9 BGM',
+    src: '/audio/page9-bgm.mp3',
+  },
+  page10: {
+    id: 'page10-bgm',
+    title: 'Page 10 BGM',
+    src: '/audio/page10-bgm.mp3',
+  },
+  page11: {
+    id: 'page11-bgm',
+    title: 'Page 11 BGM',
+    src: '/audio/page11-bgm.mp3',
+  },
 } satisfies Record<string, MusicTrack>

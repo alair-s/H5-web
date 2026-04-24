@@ -99,7 +99,7 @@ export default function Page4({ activePageId, goToPage }: HomePageProps) {
 
   const revealNext = () => {
     if (step >= finalStep) {
-      goToPage?.('home-page-5')
+      goToPage?.('home-page-5-pre')
       return
     }
 
