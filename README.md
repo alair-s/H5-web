@@ -2,6 +2,14 @@
 
 一个基于 React + TypeScript + Vite 构建的厦门旅游主题移动端 H5 展示页面，包含多页滚动、背景音乐、动效过渡等功能。
 
+## 在线体验
+
+扫描下方二维码，即可在手机上体验：
+
+<div align="center">
+  <img src="assets/qrcode.png" alt="体验二维码" width="200" />
+</div>
+
 ## 技术栈
 
 - **框架**：React 19 + TypeScript
