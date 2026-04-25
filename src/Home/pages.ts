@@ -10,6 +10,7 @@ import Page8 from './Page8'
 import Page9 from './Page9'
 import Page10 from './Page10'
 import Page11 from './Page11'
+import Page12 from './Page12'
 import type { HomePageDefinition } from './types'
 
 export const homePages: HomePageDefinition[] = [
@@ -60,5 +61,9 @@ export const homePages: HomePageDefinition[] = [
   {
     id: 'home-page-11',
     Component: Page11,
+  },
+  {
+    id: 'home-page-12',
+    Component: Page12,
   },
 ]

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import loadingImg from '../../assets/loading/loading.png'
+import { requiredAudioSrcs } from '../Background/audioAssets'
+import { preloadAudioFile } from '../Background/audioPreload'
 import { sharedPngAssets } from '../Background/assets'
 import { page2Assets } from '../Home/Page2/assets'
 import { page3Assets } from '../Home/Page3/assets'
@@ -11,6 +13,7 @@ import { page8Assets } from '../Home/Page8/assets'
 import { page9Assets } from '../Home/Page9/assets'
 import { page10Assets } from '../Home/Page10/assets'
 import { page11Assets } from '../Home/Page11/assets'
+import { page12Assets } from '../Home/Page12/assets'
 
 /** 将 assets 对象（值可能是 PngAsset 或 PngAsset[]）展平为 src 字符串数组 */
 function flattenSrcs(assets: Record<string, unknown>): string[] {
@@ -20,10 +23,54 @@ function flattenSrcs(assets: Record<string, unknown>): string[] {
   })
 }
 
-const ALL_IMAGE_SRCS: string[] = [
+function dedupeSrcs(srcs: string[]) {
+  return Array.from(new Set(srcs))
+}
+
+function preloadImage(src: string) {
+  return new Promise<void>((resolve, reject) => {
+    const img = new Image()
+
+    img.decoding = 'async'
+    img.onload = () => {
+      if (typeof img.decode !== 'function') {
+        resolve()
+        return
+      }
+
+      img.decode().then(resolve).catch(resolve)
+    }
+    img.onerror = () => reject(new Error(`Failed to preload image: ${src}`))
+    img.src = src
+  })
+}
+
+async function preloadBackgroundImages(srcs: string[], concurrency = 2) {
+  let cursor = 0
+  const workerCount = Math.min(concurrency, srcs.length)
+  const workers = Array.from({ length: workerCount }, async () => {
+    while (cursor < srcs.length) {
+      const src = srcs[cursor]
+      cursor += 1
+
+      try {
+        await preloadImage(src)
+      } catch (error) {
+        console.warn(error)
+      }
+    }
+  })
+
+  await Promise.all(workers)
+}
+
+const CRITICAL_IMAGE_SRCS: string[] = dedupeSrcs([
   ...flattenSrcs(sharedPngAssets as unknown as Record<string, unknown>),
   ...flattenSrcs(page2Assets as unknown as Record<string, unknown>),
   ...flattenSrcs(page3Assets as unknown as Record<string, unknown>),
+])
+
+const BACKGROUND_IMAGE_SRCS: string[] = dedupeSrcs([
   ...flattenSrcs(page4Assets as unknown as Record<string, unknown>),
   ...flattenSrcs(page5Assets as unknown as Record<string, unknown>),
   ...flattenSrcs(page6Assets as unknown as Record<string, unknown>),
@@ -32,13 +79,8 @@ const ALL_IMAGE_SRCS: string[] = [
   ...flattenSrcs(page9Assets as unknown as Record<string, unknown>),
   ...flattenSrcs(page10Assets as unknown as Record<string, unknown>),
   ...flattenSrcs(page11Assets as unknown as Record<string, unknown>),
-]
-
-const AUDIO_SRCS = [
-  `${import.meta.env.BASE_URL}audio/bg.mp3`,
-  `${import.meta.env.BASE_URL}audio/click.mp3`,
-  `${import.meta.env.BASE_URL}audio/finish.mp3`,
-]
+  ...flattenSrcs(page12Assets as unknown as Record<string, unknown>),
+]).filter((src) => !CRITICAL_IMAGE_SRCS.includes(src))
 
 /** 最短展示时间（ms），避免资源已缓存时 loading 一闪而过 */
 const MIN_DISPLAY_MS = 1200
@@ -53,45 +95,52 @@ export default function Loading({ onLoaded }: Props) {
   const doneRef = useRef(false)
 
   useEffect(() => {
-    const total = ALL_IMAGE_SRCS.length + AUDIO_SRCS.length
+    let cancelled = false
+    const total = CRITICAL_IMAGE_SRCS.length + requiredAudioSrcs.length
     let loaded = 0
 
     function onOne() {
       loaded += 1
-      setProgress(Math.round((loaded / total) * 100))
-
-      if (loaded >= total && !doneRef.current) {
-        doneRef.current = true
-        const elapsed = Date.now() - startTimeRef.current
-        const remaining = Math.max(0, MIN_DISPLAY_MS - elapsed)
-        setTimeout(onLoaded, remaining)
+      if (!cancelled) {
+        setProgress(Math.round((loaded / total) * 100))
       }
     }
 
-    ALL_IMAGE_SRCS.forEach((src) => {
-      const img = new Image()
-      img.onload = onOne
-      img.onerror = onOne
-      img.src = src
-    })
+    async function loadCriticalResources() {
+      try {
+        await Promise.all([
+          ...CRITICAL_IMAGE_SRCS.map((src) => preloadImage(src).then(onOne)),
+          ...requiredAudioSrcs.map((src) => preloadAudioFile(src).then(onOne)),
+        ])
 
-    AUDIO_SRCS.forEach((src) => {
-      const audio = new Audio()
-      audio.oncanplaythrough = onOne
-      audio.onerror = onOne
-      audio.preload = 'auto'
-      audio.src = src
-    })
+        if (cancelled || doneRef.current) {
+          return
+        }
 
-    // 保底：8 秒后强制进入，防止某个资源永久阻塞
-    const fallback = setTimeout(() => {
-      if (!doneRef.current) {
         doneRef.current = true
-        onLoaded()
-      }
-    }, 8000)
+        const elapsed = Date.now() - startTimeRef.current
+        const remaining = Math.max(0, MIN_DISPLAY_MS - elapsed)
 
-    return () => clearTimeout(fallback)
+        window.setTimeout(() => {
+          if (cancelled) {
+            return
+          }
+
+          onLoaded()
+          window.setTimeout(() => {
+            void preloadBackgroundImages(BACKGROUND_IMAGE_SRCS)
+          }, 0)
+        }, remaining)
+      } catch (error) {
+        console.error(error)
+      }
+    }
+
+    void loadCriticalResources()
+
+    return () => {
+      cancelled = true
+    }
   }, [onLoaded])
 
   return (

@@ -284,26 +284,28 @@ export default function Page9({ activePageId, goToPage }: HomePageProps) {
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.7 }}
-              animate={{
-                opacity: 1,
-                scale: stampPhase === 'pressing'
-                  ? [1, 0.75, 1.08, 1]
-                  : isDragging
-                    ? 1
-                    : [1, 1.3, 1],
-              }}
-              transition={
-                stampPhase === 'pressing'
-                  ? { duration: 0.5, times: [0, 0.3, 0.7, 1] }
-                  : isDragging
-                    ? { duration: 0.15 }
-                    : { duration: 1.8, times: [0, 0.5, 1], repeat: Infinity, ease: 'easeInOut' }
-              }
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.22, ease: 'easeOut' }}
             >
-              <SceneImage
-                asset={page9Assets.stamp}
-                className="block w-full drop-shadow-[0_14px_24px_rgba(98,71,53,0.25)] pointer-events-none"
-              />
+              <motion.div
+                animate={
+                  stampPhase === 'pressing'
+                    ? { scale: [1, 0.75, 1.08, 1] }
+                    : { scale: isDragging ? 1.04 : [1, 1.08, 1] }
+                }
+                transition={
+                  stampPhase === 'pressing'
+                    ? { duration: 0.5, times: [0, 0.3, 0.7, 1] }
+                    : isDragging
+                      ? { duration: 0.15, ease: 'easeOut' }
+                      : { duration: 1.8, times: [0, 0.5, 1], repeat: Infinity, ease: 'easeInOut' }
+                }
+              >
+                <SceneImage
+                  asset={page9Assets.stamp}
+                  className="block w-full drop-shadow-[0_14px_24px_rgba(98,71,53,0.25)] pointer-events-none"
+                />
+              </motion.div>
             </motion.div>
           </div>
         )}

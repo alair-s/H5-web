@@ -1,3 +1,5 @@
+import { coreAudioSrcs } from './audioAssets'
+
 export type MusicTrack = {
   id: string
   title: string
@@ -7,7 +9,7 @@ export type MusicTrack = {
 export const bgTrack: MusicTrack = {
   id: 'bg',
   title: '背景音乐',
-  src: `${import.meta.env.BASE_URL}audio/bg.mp3`,
+  src: coreAudioSrcs.bg,
 }
 
 export const pageMusicTracks = {

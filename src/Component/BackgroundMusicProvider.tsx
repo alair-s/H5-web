@@ -9,6 +9,8 @@ import {
   type PropsWithChildren,
 } from 'react'
 import { motion } from 'motion/react'
+import { coreAudioSrcs } from '../Background/audioAssets'
+import { resolvePreloadedAudioSrc } from '../Background/audioPreload'
 import type { MusicTrack } from '../Background/music'
 
 type BackgroundMusicContextValue = {
@@ -46,15 +48,17 @@ export function BackgroundMusicProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     const audio = new Audio()
     audio.loop = true
-    audio.preload = 'none'
+    audio.preload = 'auto'
     audioRef.current = audio
 
-    const click = new Audio(`${import.meta.env.BASE_URL}audio/click.mp3`)
+    const click = new Audio(resolvePreloadedAudioSrc(coreAudioSrcs.click))
     click.preload = 'auto'
+    click.load()
     clickAudioRef.current = click
 
-    const finish = new Audio(`${import.meta.env.BASE_URL}audio/finish.mp3`)
+    const finish = new Audio(resolvePreloadedAudioSrc(coreAudioSrcs.finish))
     finish.preload = 'auto'
+    finish.load()
     finishAudioRef.current = finish
 
     const handlePlay = () => setIsPlaying(true)
@@ -88,7 +92,7 @@ export function BackgroundMusicProvider({ children }: PropsWithChildren) {
       return
     }
 
-    audio.src = currentTrack.src
+    audio.src = resolvePreloadedAudioSrc(currentTrack.src)
     audio.load()
 
     if (isReady) {
