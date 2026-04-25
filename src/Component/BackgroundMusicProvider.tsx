@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -17,6 +18,8 @@ type BackgroundMusicContextValue = {
   setTrack: (track: MusicTrack | null) => void
   enablePlayback: () => Promise<void>
   togglePlayback: () => Promise<void>
+  playClick: () => void
+  playFinish: () => void
 }
 
 const BackgroundMusicContext = createContext<BackgroundMusicContextValue | null>(
@@ -33,8 +36,11 @@ async function safePlay(audio: HTMLAudioElement) {
 
 export function BackgroundMusicProvider({ children }: PropsWithChildren) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const clickAudioRef = useRef<HTMLAudioElement | null>(null)
+  const finishAudioRef = useRef<HTMLAudioElement | null>(null)
   const [currentTrack, setCurrentTrack] = useState<MusicTrack | null>(null)
-  const [isReady, setIsReady] = useState(false)
+  // 默认开启，首次用户交互后浏览器会解锁自动播放
+  const [isReady, setIsReady] = useState(true)
   const [isPlaying, setIsPlaying] = useState(false)
 
   useEffect(() => {
@@ -42,6 +48,14 @@ export function BackgroundMusicProvider({ children }: PropsWithChildren) {
     audio.loop = true
     audio.preload = 'none'
     audioRef.current = audio
+
+    const click = new Audio(`${import.meta.env.BASE_URL}audio/click.mp3`)
+    click.preload = 'auto'
+    clickAudioRef.current = click
+
+    const finish = new Audio(`${import.meta.env.BASE_URL}audio/finish.mp3`)
+    finish.preload = 'auto'
+    finishAudioRef.current = finish
 
     const handlePlay = () => setIsPlaying(true)
     const handlePause = () => setIsPlaying(false)
@@ -54,6 +68,8 @@ export function BackgroundMusicProvider({ children }: PropsWithChildren) {
       audio.removeEventListener('play', handlePlay)
       audio.removeEventListener('pause', handlePause)
       audioRef.current = null
+      clickAudioRef.current = null
+      finishAudioRef.current = null
     }
   }, [])
 
@@ -80,15 +96,46 @@ export function BackgroundMusicProvider({ children }: PropsWithChildren) {
     }
   }, [currentTrack, isReady])
 
-  const enablePlayback = async () => {
-    setIsReady(true)
+  const playClick = useCallback(() => {
+    const audio = clickAudioRef.current
+    if (!audio || !isReady) return
+    audio.currentTime = 0
+    void audio.play().catch(() => {})
+  }, [isReady])
 
-    const audio = audioRef.current
+  const playFinish = useCallback(() => {
+    const audio = finishAudioRef.current
+    if (!audio || !isReady) return
+    audio.currentTime = 0
+    void audio.play().catch(() => {})
+  }, [isReady])
 
-    if (!audio || !currentTrack?.src) {
-      return
+  // 全局点击：播放点击音效 + 首次交互时解锁背景音乐
+  useEffect(() => {
+    if (!isReady) return
+
+    const handleGlobalClick = () => {
+      // 背景音乐被浏览器阻断后，首次点击恢复播放
+      const bgAudio = audioRef.current
+      if (bgAudio && bgAudio.paused && bgAudio.src) {
+        void bgAudio.play().catch(() => {})
+      }
+
+      // 点击音效
+      const clickAudio = clickAudioRef.current
+      if (!clickAudio) return
+      clickAudio.currentTime = 0
+      void clickAudio.play().catch(() => {})
     }
 
+    document.addEventListener('click', handleGlobalClick)
+    return () => document.removeEventListener('click', handleGlobalClick)
+  }, [isReady])
+
+  const enablePlayback = async () => {
+    setIsReady(true)
+    const audio = audioRef.current
+    if (!audio || !currentTrack?.src) return
     await safePlay(audio)
   }
 
@@ -118,8 +165,10 @@ export function BackgroundMusicProvider({ children }: PropsWithChildren) {
       setTrack: setCurrentTrack,
       enablePlayback,
       togglePlayback,
+      playClick,
+      playFinish,
     }),
-    [currentTrack, isPlaying, isReady],
+    [currentTrack, isPlaying, isReady, playClick, playFinish],
   )
 
   return (
@@ -141,26 +190,53 @@ export function useBackgroundMusic() {
 }
 
 function MusicToggle() {
-  const { currentTrack, isReady, isPlaying, togglePlayback } = useBackgroundMusic()
+  const { isReady, isPlaying, togglePlayback } = useBackgroundMusic()
 
   return (
     <motion.button
       type="button"
       onClick={() => void togglePlayback()}
-      className="fixed right-4 top-4 z-50 flex items-center gap-2 rounded-full border border-white/70 bg-white/78 px-4 py-2 text-xs text-slate-700 shadow-[0_10px_28px_rgba(116,132,180,0.2)] backdrop-blur-md"
+      className="fixed right-4 top-4 z-50 flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/80 shadow-[0_8px_24px_rgba(116,132,180,0.22)] backdrop-blur-md active:scale-90 transition-transform"
       initial={{ opacity: 0, y: -12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
+      aria-label={isReady ? '关闭音乐' : '开启音乐'}
     >
-      <span
-        className={`h-2.5 w-2.5 rounded-full ${
-          isPlaying ? 'bg-emerald-400' : 'bg-slate-400'
-        }`}
-      />
-      <span>{isReady ? 'Music On' : 'Music Off'}</span>
-      <span className="max-w-24 truncate text-slate-500">
-        {currentTrack?.title ?? 'No Track'}
-      </span>
+      {isReady && isPlaying ? (
+        // 音乐播放中：喇叭+声波图标
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#5a6fa8"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+        </svg>
+      ) : (
+        // 静音：喇叭+X图标
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#94a3b8"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+          <line x1="23" y1="9" x2="17" y2="15" />
+          <line x1="17" y1="9" x2="23" y2="15" />
+        </svg>
+      )}
     </motion.button>
   )
 }

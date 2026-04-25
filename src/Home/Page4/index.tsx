@@ -1,6 +1,7 @@
 import { motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { pageMusicTracks } from '../../Background/music'
+import { useBackgroundMusic } from '../../Component/BackgroundMusicProvider'
 import PageMusic from '../../Component/PageMusic'
 import ScrollHint from '../../Component/ScrollHint'
 import SceneImage from '../../UI/SceneImage'
@@ -9,6 +10,7 @@ import { page4Assets } from './assets'
 
 export default function Page4({ activePageId, goToPage }: HomePageProps) {
   const isActive = activePageId === 'home-page-4'
+  const { playFinish } = useBackgroundMusic()
   const [step, setStep] = useState(1)
   const finalStep = 3
   const [scratchPhase, setScratchPhase] = useState<'idle' | 'scratching' | 'revealed'>('idle')
@@ -161,6 +163,7 @@ export default function Page4({ activePageId, goToPage }: HomePageProps) {
       scratchDoneRef.current = true
       setScratchPhase('revealed')
       setStep(3)
+      playFinish()
     }
   }
 

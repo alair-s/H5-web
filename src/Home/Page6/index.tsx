@@ -1,6 +1,7 @@
 import { motion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { pageMusicTracks } from '../../Background/music'
+import { useBackgroundMusic } from '../../Component/BackgroundMusicProvider'
 import PageMusic from '../../Component/PageMusic'
 import ScrollHint from '../../Component/ScrollHint'
 import SceneImage from '../../UI/SceneImage'
@@ -23,6 +24,7 @@ function genPileOrder(): number[] {
 
 export default function Page6({ activePageId, goToPage }: HomePageProps) {
   const isActive = activePageId === 'home-page-6'
+  const { playFinish } = useBackgroundMusic()
 
   // slots[i] = piece index placed at slot i (null if empty)
   // With the "correct-only" mechanic, slots[i] === i when placed
@@ -31,8 +33,6 @@ export default function Page6({ activePageId, goToPage }: HomePageProps) {
   const [dragging, setDragging] = useState<{ pieceIndex: number; x: number; y: number } | null>(null)
   const [hoveringSlot, setHoveringSlot] = useState<number | null>(null)
   const [phase, setPhase] = useState<Phase>('puzzle')
-  const [showStep, setShowStep] = useState(false)
-
   const slotRefs = useRef<(HTMLDivElement | null)[]>(Array(9).fill(null))
   const phaseRef = useRef<Phase>('puzzle')
   phaseRef.current = phase
@@ -44,11 +44,8 @@ export default function Page6({ activePageId, goToPage }: HomePageProps) {
       setDragging(null)
       setHoveringSlot(null)
       setPhase('puzzle')
-      setShowStep(false)
       return
     }
-    const t = setTimeout(() => setShowStep(true), 500)
-    return () => clearTimeout(t)
   }, [isActive])
 
   // Watch for puzzle completion
@@ -56,13 +53,16 @@ export default function Page6({ activePageId, goToPage }: HomePageProps) {
     if (phaseRef.current !== 'puzzle') return
     if (!slots.every((v, i) => v === i)) return
 
-    const t1 = setTimeout(() => setPhase('flash'), 300)
+    const t1 = setTimeout(() => {
+      setPhase('flash')
+      playFinish()
+    }, 300)
     const t2 = setTimeout(() => setPhase('complete'), 1900)
     return () => {
       clearTimeout(t1)
       clearTimeout(t2)
     }
-  }, [slots])
+  }, [slots, playFinish])
 
   const placedPieces = useMemo(
     () => new Set(slots.filter((s): s is number => s !== null)),

@@ -1,22 +1,22 @@
 import { useEffect } from 'react'
-import type { MusicTrack } from '../Background/music'
+import { bgTrack, type MusicTrack } from '../Background/music'
 import { useBackgroundMusic } from './BackgroundMusicProvider'
 
 type PageMusicProps = {
   isActive: boolean
-  track: MusicTrack
+  track?: MusicTrack
 }
 
-export default function PageMusic({ isActive, track }: PageMusicProps) {
+export default function PageMusic({ isActive }: PageMusicProps) {
   const { currentTrack, setTrack } = useBackgroundMusic()
 
   useEffect(() => {
-    if (!isActive || currentTrack?.id === track.id) {
+    if (!isActive || currentTrack?.id === bgTrack.id) {
       return
     }
 
-    setTrack(track)
-  }, [currentTrack?.id, isActive, setTrack, track])
+    setTrack(bgTrack)
+  }, [currentTrack?.id, isActive, setTrack])
 
   return null
 }

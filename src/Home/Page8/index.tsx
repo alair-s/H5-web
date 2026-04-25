@@ -1,11 +1,13 @@
 import html2canvas from 'html2canvas'
 import { useEffect, useRef, useState } from 'react'
 import { pageMusicTracks } from '../../Background/music'
+import { useBackgroundMusic } from '../../Component/BackgroundMusicProvider'
 import PageMusic from '../../Component/PageMusic'
 import SceneImage from '../../UI/SceneImage'
 import type { HomePageProps } from '../types'
 import { page8Assets } from './assets'
 import ScrollHint from '../../Component/ScrollHint'
+import { savePostcard } from '../../data/postcardStore'
 
 // ─── 贴纸分类定义 ────────────────────────────────────────────
 type CategoryId = 'emoji' | 'objects' | 'scenery'
@@ -107,6 +109,7 @@ interface DragState {
 // ─── 主组件 ──────────────────────────────────────────────────
 export default function Page8({ activePageId }: HomePageProps) {
   const isActive = activePageId === 'home-page-8'
+  const { playFinish } = useBackgroundMusic()
 
   const [items, setItems] = useState<PlacedItem[]>([])
   const [activeCategory, setActiveCategory] = useState<CategoryId | null>(null)
@@ -117,6 +120,7 @@ export default function Page8({ activePageId }: HomePageProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
   const postcardRef = useRef<HTMLDivElement>(null)
+  const postcardBgRef = useRef<HTMLImageElement>(null)
   const dragRef = useRef<DragState | null>(null)
   const dragMoved = useRef(false)
 
@@ -271,51 +275,29 @@ export default function Page8({ activePageId }: HomePageProps) {
 
     setCapturing(true)
     try {
+      // 只截取明信片背景图实际所在区域，去掉上方空白
+      const bgOffsetY = postcardBgRef.current?.offsetTop ?? 0
+      const bgHeight = postcardBgRef.current?.offsetHeight ?? postcardRef.current.offsetHeight
       const canvas = await html2canvas(postcardRef.current, {
         scale: window.devicePixelRatio || 2,
         useCORS: true,
         allowTaint: false,
         backgroundColor: '#ffffff',
         logging: false,
-        // 确保只截取 postcard 区域
         width: postcardRef.current.offsetWidth,
-        height: postcardRef.current.offsetHeight,
+        height: bgHeight,
+        y: bgOffsetY,
       })
-      setPreviewUrl(canvas.toDataURL('image/png'))
+      const dataUrl = canvas.toDataURL('image/png')
+      // 保存到 data store，以时间戳命名
+      savePostcard(dataUrl)
+      setPreviewUrl(dataUrl)
+      playFinish()
     } catch (err) {
       console.error('截图失败:', err)
     } finally {
       setCapturing(false)
     }
-  }
-
-  const downloadImage = () => {
-    if (!previewUrl) return
-    if (typeof navigator.share === 'function') {
-      fetch(previewUrl)
-        .then(r => r.blob())
-        .then(blob => {
-          const file = new File([blob], `明信片-${Date.now()}.png`, { type: 'image/png' })
-          if (navigator.canShare?.({ files: [file] })) {
-            navigator.share({ files: [file], title: '我的厦门明信片' }).catch(fallbackDownload)
-            return
-          }
-          fallbackDownload()
-        })
-        .catch(fallbackDownload)
-    } else {
-      fallbackDownload()
-    }
-  }
-
-  const fallbackDownload = () => {
-    if (!previewUrl) return
-    const a = document.createElement('a')
-    a.href = previewUrl
-    a.download = `明信片-${Date.now()}.png`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
   }
 
   // ── 底部面板模式 ──────────────────────────────────────────
@@ -357,9 +339,10 @@ export default function Page8({ activePageId }: HomePageProps) {
         >
           {/* 明信片背景 */}
           <img
+            ref={postcardBgRef}
             src={page8Assets.postcardBg.src}
             alt={page8Assets.postcardBg.alt}
-            className="absolute w-full top-40  object-fill"
+            className="absolute w-full top-40 object-fill"
             crossOrigin="anonymous"
             draggable={false}
           />
@@ -653,9 +636,9 @@ export default function Page8({ activePageId }: HomePageProps) {
               <button
                 type="button"
                 className="grow py-3 rounded-2xl bg-rose-400 text-white text-sm font-semibold active:scale-95 transition-transform shadow-sm"
-                onClick={downloadImage}
+                onClick={() => setPreviewUrl(null)}
               >
-                保存到相册
+                完成 ✓
               </button>
               <button
                 type="button"

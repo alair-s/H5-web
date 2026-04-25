@@ -1,9 +1,8 @@
 import type { PngAsset } from '../../Background/assets'
 import backgroundImage from '../../../assets/page11/background.jpg'
-import characterImage from '../../../assets/page11/character.jpg'
-import dialogBubbleImage from '../../../assets/page11/dialog-bubble.jpg'
-import displayBoardImage from '../../../assets/page11/display-board.jpg'
-import textImage from '../../../assets/page11/text.jpg'
+import characterImage from '../../../assets/page11/character.png'
+import displayBoardImage from '../../../assets/page11/display-board.png'
+import textImage from '../../../assets/page11/text.png'
 
 export const page11Assets = {
   background: {
@@ -14,11 +13,6 @@ export const page11Assets = {
   character: {
     src: characterImage,
     alt: '第十一页人物',
-    group: 'page',
-  },
-  dialogBubble: {
-    src: dialogBubbleImage,
-    alt: '第十一页对话框',
     group: 'page',
   },
   displayBoard: {

@@ -1,6 +1,7 @@
 import { motion } from 'motion/react'
 import { useEffect, useState } from 'react'
 import { pageMusicTracks } from '../../Background/music'
+import { useBackgroundMusic } from '../../Component/BackgroundMusicProvider'
 import PageMusic from '../../Component/PageMusic'
 import ScrollHint from '../../Component/ScrollHint'
 import SceneImage from '../../UI/SceneImage'
@@ -9,8 +10,9 @@ import { page10Assets } from './assets'
 
 export default function Page10({ activePageId, goToPage }: HomePageProps) {
   const isActive = activePageId === 'home-page-10'
+  const { playFinish } = useBackgroundMusic()
   const [step, setStep] = useState(0)
-  const finalStep = 4
+  const finalStep = 3
 
   useEffect(() => {
     if (!isActive) {
@@ -24,7 +26,12 @@ export default function Page10({ activePageId, goToPage }: HomePageProps) {
       return
     }
 
-    setStep((current) => Math.min(current + 1, finalStep))
+    const next = Math.min(step + 1, finalStep)
+    // 信封飞入邮箱时播放完成音效
+    if (next === 2) {
+      playFinish()
+    }
+    setStep(next)
   }
 
   return (
@@ -49,15 +56,15 @@ export default function Page10({ activePageId, goToPage }: HomePageProps) {
         {step >= 1 ? (
           <>
             <motion.div
-              className="pointer-events-none absolute inset-0 z-20"
+              className="pointer-events-none absolute bottom-0 z-20"
               initial={{ opacity: 0, x: -24 }}
               animate={{ opacity: step >= 2 ? 0 : 1, x: step >= 2 ? -12 : 0 }}
               transition={{ duration: 0.4 }}
             >
-              <SceneImage asset={page10Assets.characterOne} className="h-full w-full object-fill" />
+              <SceneImage asset={page10Assets.characterOne} className=" w-full object-fill" />
             </motion.div>
             <motion.div
-              className="pointer-events-none absolute inset-0 z-20"
+              className="pointer-events-none absolute -bottom-60 z-20"
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: step >= 1 ? 1 : 0, scale: 1 }}
               transition={{ duration: 0.35 }}
@@ -65,7 +72,7 @@ export default function Page10({ activePageId, goToPage }: HomePageProps) {
               <SceneImage asset={page10Assets.dialogBubbleOne} className="h-full w-full object-fill" />
             </motion.div>
             <motion.div
-              className="pointer-events-none absolute inset-0 z-20"
+              className="pointer-events-none absolute -bottom-55 right-5 z-20"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: step >= 1 ? 1 : 0, y: 0 }}
               transition={{ duration: 0.35, delay: 0.05 }}
@@ -81,15 +88,15 @@ export default function Page10({ activePageId, goToPage }: HomePageProps) {
               className="pointer-events-none absolute inset-0 z-20"
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.35 }}
+              transition={{ duration: 0.35 ,delay: 1.2 }}
             >
-              <SceneImage asset={page10Assets.characterTwo} className="h-full w-full object-fill" />
+              <SceneImage asset={page10Assets.characterTwo} className=" w-full object-fill" />
             </motion.div>
             <motion.div
               className="pointer-events-none absolute inset-0 z-20"
-              initial={{ opacity: 0, scale: 0.96 }}
+              initial={{ opacity: 0, scale: 0.96,x: 10 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.35 }}
+              transition={{ duration: 0.35 ,delay: 1.2 }}
             >
               <SceneImage asset={page10Assets.dialogBubbleTwo} className="h-full w-full object-fill" />
             </motion.div>
@@ -97,31 +104,31 @@ export default function Page10({ activePageId, goToPage }: HomePageProps) {
               className="pointer-events-none absolute inset-0 z-20"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, delay: 0.05 }}
+              transition={{ duration: 0.35, delay: 1.2 }}
             >
               <SceneImage asset={page10Assets.textTwo} className="h-full w-full object-fill" />
             </motion.div>
           </>
         ) : null}
 
-        {step >= 3 ? (
+        {step >= 1 ? (
           <>
             <motion.div
-              className="pointer-events-none absolute inset-0 z-20"
+              className="pointer-events-none absolute inset-0 z-10"
               initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
+              animate={{ opacity: 1, y: 100 }}
               transition={{ duration: 0.35 }}
             >
               <SceneImage asset={page10Assets.mailbox} className="h-full w-full object-fill" />
             </motion.div>
             <motion.div
-              className="pointer-events-none absolute inset-0 z-30"
+              className="pointer-events-none absolute bottom-60  z-30"
               initial={{ opacity: 0, y: 0, x: 0, scale: 0.98 }}
               animate={{
-                opacity: step >= 4 ? 0 : 1,
-                x: step >= 4 ? 138 : 0,
-                y: step >= 4 ? -102 : 0,
-                scale: step >= 4 ? 0.76 : 1,
+                opacity: step >= 2 ? 0 : 1,
+                x: step >= 2 ? 138 : 0,
+                y: step >= 2 ? -102 : 0,
+                scale: step >= 2 ? 0.76 : 1,
               }}
               transition={{ duration: 0.6, ease: 'easeInOut' }}
             >
@@ -130,22 +137,7 @@ export default function Page10({ activePageId, goToPage }: HomePageProps) {
           </>
         ) : null}
 
-        {step >= 4 ? (
-          <motion.div
-            className="pointer-events-none absolute right-[17%] top-[49%] z-30 rounded-full bg-[#ffefe3] px-4 py-2 text-sm tracking-[0.18em] text-[#c96e46] shadow-[0_14px_28px_rgba(214,133,88,0.2)]"
-            initial={{ opacity: 0, scale: 0.88 }}
-            animate={{
-              opacity: 1,
-              scale: [1, 1.05, 1],
-            }}
-            transition={{
-              opacity: { duration: 0.3 },
-              scale: { duration: 1.8, repeat: Infinity, ease: 'easeInOut' },
-            }}
-          >
-            已投入邮筒
-          </motion.div>
-        ) : null}
+      
 
         <ScrollHint />
       </div>
